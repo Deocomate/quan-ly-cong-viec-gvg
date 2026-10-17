@@ -1,0 +1,28 @@
+# Dùng cho Coolify (Docker Compose) hoặc `docker compose up -d --build` trên máy chủ riêng.
+# Đặt các biến trong Coolify → Environment Variables (hoặc file .env cạnh file này).
+# Cổng 3000 chỉ mở trong mạng Docker (expose), không gắn ra cổng của máy chủ, nên không bao giờ trùng cổng với ứng dụng khác.
+# Proxy (Traefik của Coolify, hoặc Nginx/Caddy cùng mạng) chuyển tên miền tới app:3000.
+# Chỉ chạy MỘT bản sao: CSDL nhúng không cho hai tiến trình cùng ghi vào /data.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    stop_grace_period: 30s
+    expose:
+      - '3000'
+    environment:
+      APP_URL: ${APP_URL:?Thiếu APP_URL, ví dụ https://quanly.ten-mien.vn}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_INTERVAL_MIN: ${EMAIL_INTERVAL_MIN:-10}
+    volumes:
+      - app-data:/data
+volumes:
+  app-data:

@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Be Vietnam Pro', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Nền trung tính ấm */
+  --color-canvas: #faf8f5;
+  --color-surface: #ffffff;
+  --color-sunken: #f3efe9;
+  --color-line: #e8e2da;
+  --color-line-strong: #d9d1c6;
+  --color-ink: #2b2724;
+  --color-ink-soft: #5c544d;
+  --color-ink-muted: #8a8178;
+  --color-accent: #2b2724;
+
+  /* Màu thương hiệu */
+  --color-terracotta: #b0532c;
+  --color-terracotta-soft: #f7e8df;
+  --color-teal: #1c7f79;
+  --color-teal-soft: #dcf0ee;
+  --color-deepblue: #24427f;
+  --color-deepblue-soft: #e2e8f4;
+  --color-dustypink: #b5707a;
+  --color-dustypink-soft: #f6e6e3;
+
+  /* Trạng thái */
+  --color-ok: #2f7d4f;
+  --color-ok-soft: #e3f1e7;
+  --color-warn: #a86a12;
+  --color-warn-soft: #fbefd8;
+  --color-danger: #b4372f;
+  --color-danger-soft: #fae3e0;
+  --color-info: #2f5fa8;
+  --color-info-soft: #e3ebf7;
+  --color-violet: #6b4fb0;
+  --color-violet-soft: #ece6f7;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-feature-settings: 'tnum' 0;
+  }
+  ::selection {
+    background: #ead9c9;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(43,39,36,0.04)];
+  }
+  .input {
+    @apply w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted
+      focus:border-ink-soft focus:outline-none focus:ring-2 focus:ring-[#ead9c9] disabled:bg-sunken disabled:text-ink-muted;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-ink-soft;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* In / Lưu PDF: chỉ in nội dung trang, bỏ thanh điều hướng và nút bấm */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  aside,
+  header,
+  .no-print,
+  [role='status'] {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  .print-break {
+    break-before: page;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
