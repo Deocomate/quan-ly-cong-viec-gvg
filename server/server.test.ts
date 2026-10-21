@@ -77,6 +77,16 @@ describe('giới hạn tần suất', () => {
     t = 1001
     expect(allow('a')).toBe(true)
   })
+  it('chỉ đếm khi ghi nhận: blocked() không tiêu hao lượt, hit() mới tính', () => {
+    let t = 0
+    const failures = createRateLimiter({ max: 2, windowMs: 1000, now: () => t })
+    for (let i = 0; i < 5; i++) expect(failures.blocked('ip')).toBe(false)
+    failures.hit('ip')
+    failures.hit('ip')
+    expect(failures.blocked('ip')).toBe(true)
+    t = 1001
+    expect(failures.blocked('ip')).toBe(false)
+  })
 })
 
 describe('địa chỉ IP sau proxy', () => {

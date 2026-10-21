@@ -35,6 +35,7 @@ const { auth, db, files } = svc
 
 const forgotLimit = createRateLimiter({ max: 5, windowMs: 15 * 60_000 })
 const loginLimit = createRateLimiter({ max: 10, windowMs: 15 * 60_000 })
+const loginIpLimit = createRateLimiter({ max: 30, windowMs: 15 * 60_000 })
 const registerLimit = createRateLimiter({ max: 10, windowMs: 60 * 60_000 })
 const ipLimit = createRateLimiter({ max: 60, windowMs: 60 * 60_000 })
 
@@ -82,8 +83,18 @@ async function api(req, res, url) {
   // ---------- Không cần đăng nhập ----------
   if (route === 'POST /api/auth/login') {
     const b = await readJson(req, 4096)
-    if (!ipLimit(ip) || !loginLimit(`${ip}|${emailKey(b.email)}`)) return tooFast(res)
-    return json(res, 200, await auth.login(b.email, b.password))
+    const key = `${ip}|${emailKey(b.email)}`
+    // Chỉ đếm lần đăng nhập sai: nhiều người chung một IP (Wi-Fi văn phòng, mạng di động) không chặn nhau khi đăng nhập đúng
+    if (loginIpLimit.blocked(ip) || loginLimit.blocked(key)) return tooFast(res)
+    try {
+      return json(res, 200, await auth.login(b.email, b.password))
+    } catch (e) {
+      if (e.status === 401) {
+        loginIpLimit.hit(ip)
+        loginLimit.hit(key)
+      }
+      throw e
+    }
   }
   if (route === 'POST /api/auth/register') {
     if (!registerLimit(ip)) return tooFast(res)

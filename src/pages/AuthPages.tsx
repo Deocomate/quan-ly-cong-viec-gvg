@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
+import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Field } from '../components/ui'
 import { useAuth } from '../contexts/AuthContext'
@@ -22,6 +23,30 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle?: Re
         </div>
       </div>
     </div>
+  )
+}
+
+/** Ô email cho bàn phím điện thoại: không tự viết hoa, không tự sửa chính tả */
+function EmailInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className="input" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} required {...props} />
+}
+
+/** Ô mật khẩu có nút hiện ký tự — trên điện thoại gõ nhầm là lý do hay gặp nhất khiến không đăng nhập được */
+function PasswordInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  const [shown, setShown] = useState(false)
+  return (
+    <span className="relative block">
+      <input className="input pr-12" type={shown ? 'text' : 'password'} autoCapitalize="none" autoCorrect="off" spellCheck={false} required {...props} />
+      <button
+        type="button"
+        onClick={() => setShown((v) => !v)}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-muted hover:text-ink"
+        aria-label={shown ? 'Ẩn ký tự đã nhập' : 'Hiện ký tự đã nhập'}
+        aria-pressed={shown}
+      >
+        {shown ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </span>
   )
 }
 
@@ -52,10 +77,10 @@ export function LoginPage() {
       <form onSubmit={submit} className="space-y-4">
         {error && <Notice kind="error">{error}</Notice>}
         <Field label="Email">
-          <input className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <EmailInput value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label="Mật khẩu">
-          <input className="input" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         <Button type="submit" variant="primary" className="w-full" loading={loading}>
           Đăng nhập
@@ -101,10 +126,10 @@ export function RegisterPage() {
           <input className="input" required value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Email được mời">
-          <input className="input" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <EmailInput value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label="Mật khẩu (ít nhất 8 ký tự)">
-          <input className="input" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         <Button type="submit" variant="primary" className="w-full" loading={loading}>
           Đăng ký
@@ -139,7 +164,7 @@ export function ForgotPasswordPage() {
       <form onSubmit={submit} className="space-y-4">
         {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
         <Field label="Email">
-          <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <EmailInput value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Button type="submit" variant="primary" className="w-full" loading={loading}>
           Gửi thư đặt lại mật khẩu
@@ -187,10 +212,10 @@ export function ResetPasswordPage() {
       <form onSubmit={submit} className="space-y-4">
         {error && <Notice kind="error">{error}</Notice>}
         <Field label="Mật khẩu mới">
-          <input className="input" type="password" autoComplete="new-password" required value={pw} onChange={(e) => setPw(e.target.value)} />
+          <PasswordInput autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
         </Field>
         <Field label="Nhập lại mật khẩu mới">
-          <input className="input" type="password" autoComplete="new-password" required value={pw2} onChange={(e) => setPw2(e.target.value)} />
+          <PasswordInput autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
         </Field>
         <Button type="submit" variant="primary" className="w-full" loading={loading}>
           Lưu mật khẩu
