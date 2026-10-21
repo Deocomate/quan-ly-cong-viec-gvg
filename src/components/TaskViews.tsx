@@ -33,12 +33,12 @@ const VIEWS: { key: ViewKey; label: string; icon: ReactNode }[] = [
 
 export function ViewTabs({ view, onChange, views = VIEWS.map((v) => v.key) }: { view: ViewKey; onChange: (v: ViewKey) => void; views?: ViewKey[] }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-xl bg-sunken p-1">
+    <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-sunken p-1 sm:inline-flex sm:flex-wrap">
       {VIEWS.filter((v) => views.includes(v.key)).map((v) => (
         <button
           key={v.key}
           onClick={() => onChange(v.key)}
-          className={clsx('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm', view === v.key ? 'bg-surface font-medium shadow-sm' : 'text-ink-soft hover:text-ink')}
+          className={clsx('inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-sm whitespace-nowrap sm:px-3', view === v.key ? 'bg-surface font-medium shadow-sm' : 'text-ink-soft hover:text-ink')}
         >
           {v.icon} {v.label}
         </button>
@@ -278,19 +278,19 @@ export function CalendarView({ tasks }: { tasks: Task[] }) {
   return (
     <div className="card overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-        <button onClick={() => shift(-1)} className="rounded-lg p-1.5 hover:bg-sunken" aria-label="Tháng trước">
+        <button onClick={() => shift(-1)} className="flex size-10 items-center justify-center rounded-lg hover:bg-sunken sm:size-8" aria-label="Tháng trước">
           <ChevronLeft className="size-4" />
         </button>
         <p className="min-w-32 text-center font-semibold">
           Tháng {m}/{y}
         </p>
-        <button onClick={() => shift(1)} className="rounded-lg p-1.5 hover:bg-sunken" aria-label="Tháng sau">
+        <button onClick={() => shift(1)} className="flex size-10 items-center justify-center rounded-lg hover:bg-sunken sm:size-8" aria-label="Tháng sau">
           <ChevronRight className="size-4" />
         </button>
-        <button onClick={() => setMonth(todayKey.slice(0, 7))} className="rounded-lg px-2.5 py-1 text-sm hover:bg-sunken">
+        <button onClick={() => setMonth(todayKey.slice(0, 7))} className="min-h-10 rounded-lg px-2.5 py-1 text-sm hover:bg-sunken sm:min-h-0">
           Hôm nay
         </button>
-        <span className="ml-auto text-xs text-ink-muted">
+        <span className="ml-auto hidden text-xs text-ink-muted sm:inline">
           {isAdmin ? 'Kéo việc sang ngày khác để dời hạn (được ghi nhật ký). ' : ''}
           {noDue > 0 && `${noDue} việc chưa có hạn không hiện trên lịch.`}
         </span>

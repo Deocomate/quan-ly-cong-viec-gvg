@@ -3,12 +3,16 @@ import {
   AlertOctagon,
   ArrowLeft,
   CheckCircle2,
+  ChevronDown,
   Download,
   ExternalLink,
   FileUp,
   Link2,
+  MoreHorizontal,
   Pencil,
+  Play,
   Plus,
+  RefreshCw,
   Send,
   Star,
   Trash2,
@@ -17,6 +21,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { TaskFormModal } from '../components/TaskFormModal'
 import {
+  ActionSheet,
   Avatar,
   Badge,
   BrandTag,
@@ -30,6 +35,7 @@ import {
   StatusBadge,
   useConfirm,
   useToast,
+  type SheetAction,
 } from '../components/ui'
 import { ReviewModal, SubmitModal } from '../components/WorkflowModals'
 import { NoteModal } from './MyWorkPage'
@@ -63,6 +69,17 @@ import { effectiveProgress, isOnTime, isOverdue, overdueDays, taskPeople } from 
 import { db, STORAGE_BUCKET } from '../lib/backend'
 import type { ActivityLog, ChecklistItem, CommentKind, Profile, Subtask, Task, TaskStatus } from '../lib/types'
 
+const STATUS_DOT: Record<TaskStatus, string> = {
+  chua_bat_dau: 'bg-ink-muted',
+  dang_thuc_hien: 'bg-info',
+  cho_phan_hoi: 'bg-warn',
+  cho_duyet: 'bg-violet',
+  can_chinh_sua: 'bg-danger',
+  hoan_thanh: 'bg-ok',
+  tam_dung: 'bg-line-strong',
+  da_huy: 'bg-line-strong',
+}
+
 export function TaskPage() {
   const { id = '' } = useParams()
   const taskQ = useTask(id)
@@ -78,6 +95,9 @@ export function TaskPage() {
   const [reviewing, setReviewing] = useState(false)
   const [blocking, setBlocking] = useState(false)
   const [tab, setTab] = useState<'comments' | 'approvals' | 'activity'>('comments')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [moreInfo, setMoreInfo] = useState(false)
 
   if (taskQ.isLoading || lookups.isLoading) return <Loading />
   if (taskQ.error) return <ErrorBox error={taskQ.error} onRetry={() => taskQ.refetch()} />
@@ -132,11 +152,31 @@ export function TaskPage() {
     setBlocking(true)
   }
 
+  const canEdit = isAdmin || employeeCanEdit
+  const isOpenTask = task.status !== 'hoan_thanh' && task.status !== 'da_huy'
+  const canStart = isWorker && task.status === 'chua_bat_dau'
+  const hasPrimary = (isAdmin && task.status === 'cho_duyet') || canStart || (isWorker && SUBMITTABLE_FROM.includes(task.status))
+  // Thao tác phụ gom vào menu "⋯" để màn hình chỉ còn 1–2 nút chính
+  const menuActions: SheetAction[] = [
+    ...(canEdit ? [{ label: 'Đổi trạng thái', hint: `Hiện tại: ${STATUS_LABEL[task.status]}`, icon: <RefreshCw className="size-5" />, onClick: () => setStatusOpen(true) }] : []),
+    ...(canEdit && isOpenTask
+      ? [{ label: task.is_blocked ? 'Gỡ vướng mắc' : 'Báo vướng mắc', icon: <AlertOctagon className="size-5" />, onClick: toggleBlocked, danger: !task.is_blocked }]
+      : []),
+    ...(isAdmin
+      ? [
+          { label: 'Sửa công việc', icon: <Pencil className="size-5" />, onClick: () => setEditing(true) },
+          { label: 'Xóa công việc', hint: 'Xóa vĩnh viễn, không khôi phục được', icon: <Trash2 className="size-5" />, onClick: remove, danger: true },
+        ]
+      : []),
+  ]
+
   return (
     <>
-      <button onClick={() => navigate(-1)} className="mb-4 inline-flex items-center gap-1 text-sm text-ink-soft hover:text-ink">
-        <ArrowLeft className="size-4" /> Quay lại
-      </button>
+      <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
+        <button onClick={() => navigate(-1)} className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-sm text-ink-soft hover:text-ink">
+          <ArrowLeft className="size-4" /> Quay lại
+        </button>
+      </div>
 
       <div className="mb-5">
         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -157,44 +197,36 @@ export function TaskPage() {
         </div>
       </div>
 
-      {/* Thanh hành động */}
-      <div className="card mb-6 flex flex-wrap items-center gap-2 p-3">
-        {isAdmin && task.status === 'cho_duyet' && (
-          <Button variant="success" icon={<CheckCircle2 className="size-4" />} onClick={() => setReviewing(true)}>
-            Duyệt / Yêu cầu sửa
-          </Button>
-        )}
-        {isWorker && SUBMITTABLE_FROM.includes(task.status) && (
-          <Button variant="primary" icon={<Send className="size-4" />} onClick={() => setSubmitting(true)}>
-            {task.requires_approval ? 'Nộp duyệt' : 'Hoàn thành'}
-          </Button>
-        )}
-        {(isAdmin || employeeCanEdit) && (
-          <select className="input w-auto" value={task.status} onChange={(e) => changeStatus(e.target.value as TaskStatus)} aria-label="Đổi trạng thái">
-            {(isAdmin ? STATUS_ORDER : Array.from(new Set([task.status, ...EMPLOYEE_SETTABLE_STATUSES]))).map((s) => (
-              <option key={s} value={s} disabled={!isAdmin && !EMPLOYEE_SETTABLE_STATUSES.includes(s)}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-        )}
-        {(isAdmin || employeeCanEdit) && task.status !== 'hoan_thanh' && task.status !== 'da_huy' && (
-          <Button variant={task.is_blocked ? 'secondary' : 'ghost'} icon={<AlertOctagon className="size-4" />} onClick={toggleBlocked}>
-            {task.is_blocked ? 'Gỡ vướng mắc' : 'Báo vướng mắc'}
-          </Button>
-        )}
-        {isAdmin && (
-          <>
-            <Button variant="ghost" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)} className="sm:ml-auto">
-              Sửa
-            </Button>
-            <Button variant="ghost" icon={<Trash2 className="size-4" />} onClick={remove} className="text-danger">
-              Xóa
-            </Button>
-          </>
-        )}
-        {!canWork && <p className="text-sm text-ink-muted">Bạn đang xem công việc của thương hiệu mình. Chỉ người được giao mới cập nhật được.</p>}
-      </div>
+      {/* Hành động chính: cố định ở đáy màn hình trên điện thoại, nằm trong trang trên máy tính */}
+      {hasPrimary || menuActions.length > 0 ? (
+        <div className="no-print pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur lg:static lg:mb-6 lg:border-0 lg:bg-transparent lg:pb-0 lg:backdrop-blur-none">
+          <div className="flex items-center gap-2 px-4 py-3 lg:p-0 max-lg:[&>button]:flex-1">
+            {isAdmin && task.status === 'cho_duyet' && (
+              <Button variant="success" icon={<CheckCircle2 className="size-4" />} onClick={() => setReviewing(true)}>
+                Duyệt / Yêu cầu sửa
+              </Button>
+            )}
+            {canStart && (
+              <Button icon={<Play className="size-4" />} onClick={() => patch({ status: 'dang_thuc_hien' }, 'Đã bắt đầu công việc')}>
+                Bắt đầu
+              </Button>
+            )}
+            {isWorker && SUBMITTABLE_FROM.includes(task.status) && (
+              <Button variant="primary" icon={<Send className="size-4" />} onClick={() => setSubmitting(true)}>
+                {task.requires_approval ? 'Nộp duyệt' : 'Hoàn thành'}
+              </Button>
+            )}
+            {!hasPrimary && <span className="flex-1 text-sm text-ink-muted lg:hidden">{STATUS_LABEL[task.status]}</span>}
+            {menuActions.length > 0 && (
+              <Button variant="secondary" icon={<MoreHorizontal className="size-4" />} onClick={() => setMenuOpen(true)} className="max-lg:!flex-none" aria-label="Thao tác khác">
+                <span className="hidden lg:inline">Thao tác khác</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        !canWork && <p className="mb-5 text-sm text-ink-muted">Bạn đang xem công việc của thương hiệu mình. Chỉ người được giao mới cập nhật được.</p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -236,7 +268,7 @@ export function TaskPage() {
           <Attachments task={task} canWork={canWork} />
 
           <section className="card">
-            <div className="flex gap-1 border-b border-line p-2">
+            <div className="flex gap-1 overflow-x-auto border-b border-line p-2">
               {(
                 [
                   ['comments', 'Trao đổi'],
@@ -244,7 +276,7 @@ export function TaskPage() {
                   ['activity', 'Nhật ký thay đổi'],
                 ] as const
               ).map(([k, l]) => (
-                <button key={k} onClick={() => setTab(k)} className={clsx('rounded-lg px-3 py-1.5 text-sm', tab === k ? 'bg-sunken font-medium' : 'text-ink-soft hover:bg-sunken')}>
+                <button key={k} onClick={() => setTab(k)} className={clsx('min-h-10 shrink-0 rounded-lg px-3 py-1.5 text-sm whitespace-nowrap sm:min-h-0', tab === k ? 'bg-sunken font-medium' : 'text-ink-soft hover:bg-sunken')}>
                   {l}
                 </button>
               ))}
@@ -257,28 +289,19 @@ export function TaskPage() {
           </section>
         </div>
 
-        {/* Thông tin bên phải */}
-        <aside className="space-y-4">
-          <section className="card p-5">
-            <div className="mb-1 flex items-baseline justify-between">
-              <h2 className="text-sm font-semibold">Tiến độ</h2>
-              <span className="num text-sm font-semibold">{effectiveProgress(task)}%</span>
-            </div>
-            <ProgressBar value={effectiveProgress(task)} className="h-2" color={task.status === 'hoan_thanh' ? 'bg-ok' : undefined} />
-            {(isAdmin || employeeCanEdit) && task.status !== 'hoan_thanh' && task.status !== 'cho_duyet' && (
-              <ProgressSlider task={task} onSave={(v) => patch({ progress: v, ...(task.status === 'chua_bat_dau' && v > 0 ? { status: 'dang_thuc_hien' as TaskStatus } : {}) }, 'Đã cập nhật tiến độ')} />
-            )}
-          </section>
-
+        {/* Thông tin chính: trên điện thoại hiện trước nội dung, trên máy tính ở cột phải */}
+        <aside className="order-first space-y-4 lg:order-none">
           <section className="card divide-y divide-line text-sm">
-            <Row label="Người phụ trách chính">
-              <Person p={task.primary_owner_id ? lookups.profileById.get(task.primary_owner_id) : undefined} />
-            </Row>
-            <Row label="Người được giao">
-              <div className="flex flex-col items-end gap-1">
-                {people.length ? people.map((id) => <Person key={id} p={lookups.profileById.get(id)} />) : <span className="text-ink-muted">Chưa giao</span>}
+            <div className="px-5 py-4">
+              <div className="mb-1 flex items-baseline justify-between">
+                <h2 className="text-sm font-semibold">Tiến độ</h2>
+                <span className="num text-sm font-semibold">{effectiveProgress(task)}%</span>
               </div>
-            </Row>
+              <ProgressBar value={effectiveProgress(task)} className="h-2" color={task.status === 'hoan_thanh' ? 'bg-ok' : undefined} />
+              {(isAdmin || employeeCanEdit) && task.status !== 'hoan_thanh' && task.status !== 'cho_duyet' && (
+                <ProgressSlider task={task} onSave={(v) => patch({ progress: v, ...(task.status === 'chua_bat_dau' && v > 0 ? { status: 'dang_thuc_hien' as TaskStatus } : {}) }, 'Đã cập nhật tiến độ')} />
+              )}
+            </div>
             <Row label="Hạn chót">
               <div className="text-right">
                 <p className={clsx(isOverdue(task) && 'font-medium text-danger')}>{fmtDate(task.due_at)}</p>
@@ -288,6 +311,26 @@ export function TaskPage() {
                 )}
               </div>
             </Row>
+            <Row label="Người được giao">
+              <div className="flex flex-col items-end gap-1">
+                {people.length ? people.map((id) => <Person key={id} p={lookups.profileById.get(id)} />) : <span className="text-ink-muted">Chưa giao</span>}
+              </div>
+            </Row>
+          </section>
+
+          {/* Thông tin phụ: thu gọn trên điện thoại */}
+          <button
+            onClick={() => setMoreInfo((v) => !v)}
+            className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-line bg-surface px-5 text-sm font-medium lg:hidden"
+            aria-expanded={moreInfo}
+          >
+            Thông tin thêm
+            <ChevronDown className={clsx('size-4 text-ink-muted transition', moreInfo && 'rotate-180')} />
+          </button>
+          <section className={clsx('card divide-y divide-line text-sm lg:block', !moreInfo && 'hidden')}>
+            <Row label="Người phụ trách chính">
+              <Person p={task.primary_owner_id ? lookups.profileById.get(task.primary_owner_id) : undefined} />
+            </Row>
             <Row label="Ngày bắt đầu">{fmtDateKey(task.start_date)}</Row>
             <Row label="Độ ưu tiên">{PRIORITY_LABEL[task.priority]}</Row>
             <Row label="Độ phức tạp">{WEIGHT_OPTIONS.find((w) => w.value === task.weight)?.label}</Row>
@@ -295,7 +338,7 @@ export function TaskPage() {
             <Row label="Cần duyệt">{task.requires_approval ? 'Có' : 'Không'}</Row>
           </section>
 
-          <section className="card divide-y divide-line text-sm">
+          <section className={clsx('card divide-y divide-line text-sm lg:block', !moreInfo && 'hidden')}>
             <Row label="Ngày tạo">{fmtDateTime(task.created_at)}</Row>
             <Row label="Nộp lần đầu">{fmtDateTime(task.first_submitted_at)}</Row>
             <Row label="Nộp gần nhất">{fmtDateTime(task.submitted_at)}</Row>
@@ -321,6 +364,16 @@ export function TaskPage() {
         </aside>
       </div>
 
+      {menuOpen && <ActionSheet title="Thao tác" actions={menuActions} onClose={() => setMenuOpen(false)} />}
+      {statusOpen && (
+        <ActionSheet
+          title="Đổi trạng thái"
+          onClose={() => setStatusOpen(false)}
+          actions={(isAdmin ? STATUS_ORDER : EMPLOYEE_SETTABLE_STATUSES)
+            .filter((s) => s !== task.status)
+            .map((s) => ({ label: STATUS_LABEL[s], icon: <span className={clsx('block size-2.5 rounded-full', STATUS_DOT[s])} />, onClick: () => changeStatus(s), danger: s === 'da_huy' }))}
+        />
+      )}
       {editing && <TaskFormModal open task={task} onClose={() => setEditing(false)} />}
       {submitting && <SubmitModal task={task} onClose={() => setSubmitting(false)} />}
       {reviewing && <ReviewModal task={task} onClose={() => setReviewing(false)} />}
@@ -351,7 +404,7 @@ function ProgressSlider({ task, onSave }: { task: Task; onSave: (v: number) => v
   const [v, setV] = useState(task.progress)
   return (
     <div className="mt-4 flex items-center gap-3">
-      <input type="range" min={0} max={100} step={5} value={v} onChange={(e) => setV(Number(e.target.value))} className="flex-1 accent-[#2b2724]" aria-label="Tiến độ" />
+      <input type="range" min={0} max={100} step={5} value={v} onChange={(e) => setV(Number(e.target.value))} className="h-11 flex-1 accent-[#2b2724] sm:h-auto" aria-label="Tiến độ" />
       <Button size="sm" disabled={v === task.progress} onClick={() => onSave(v)}>
         Lưu {v}%
       </Button>
@@ -711,9 +764,9 @@ function Comments({ task }: { task: Task }) {
         </ul>
       )}
       <div className="rounded-xl border border-line-strong p-3">
-        <textarea className="w-full resize-y bg-transparent text-sm outline-none" rows={3} placeholder="Viết trao đổi, cập nhật tiến độ…" value={body} onChange={(e) => setBody(e.target.value)} />
+        <textarea className="w-full resize-y bg-transparent text-base outline-none sm:text-sm" rows={3} placeholder="Viết trao đổi, cập nhật tiến độ…" value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <select className="input w-auto py-1 text-xs" value={kind} onChange={(e) => setKind(e.target.value as CommentKind)} aria-label="Loại trao đổi">
+          <select className="input w-auto py-1 sm:text-xs" value={kind} onChange={(e) => setKind(e.target.value as CommentKind)} aria-label="Loại trao đổi">
             {(Object.keys(KIND_LABEL) as CommentKind[]).map((k) => (
               <option key={k} value={k}>
                 {KIND_LABEL[k]}
@@ -725,7 +778,7 @@ function Comments({ task }: { task: Task }) {
               key={p.id}
               type="button"
               onClick={() => setMentions((m) => (m.includes(p.id) ? m.filter((x) => x !== p.id) : [...m, p.id]))}
-              className={clsx('rounded-full px-2 py-0.5 text-xs', mentions.includes(p.id) ? 'bg-info text-white' : 'bg-sunken text-ink-soft hover:bg-line')}
+              className={clsx('min-h-8 rounded-full px-2.5 py-1 text-xs sm:min-h-0 sm:px-2 sm:py-0.5', mentions.includes(p.id) ? 'bg-info text-white' : 'bg-sunken text-ink-soft hover:bg-line')}
             >
               @{p.full_name}
             </button>

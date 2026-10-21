@@ -47,7 +47,8 @@ export function Button({
       disabled={disabled || loading}
       className={clsx(
         'inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap',
-        size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3.5 py-2 text-sm',
+        // Điện thoại: vùng chạm ≥ 44px (nút thường) / 36px (nút nhỏ)
+        size === 'sm' ? 'min-h-9 px-3 py-1.5 text-xs sm:min-h-0 sm:px-2.5' : 'min-h-11 px-4 py-2 text-sm sm:min-h-0 sm:px-3.5',
         variantCls[variant],
         className,
       )}
@@ -80,6 +81,25 @@ export const DemoTag = () => (
     Mẫu
   </Badge>
 )
+
+/** Dải chọn thương hiệu (cuộn ngang trên điện thoại). value rỗng = tất cả */
+export function BrandChips({ brands, value, onChange }: { brands: Brand[]; value: string; onChange: (id: string) => void }) {
+  const chip = (on: boolean) =>
+    clsx('flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm whitespace-nowrap transition-colors', on ? 'bg-ink text-white' : 'bg-sunken text-ink-soft hover:bg-line')
+  return (
+    <div className="scroll-x" role="group" aria-label="Lọc thương hiệu">
+      <button type="button" onClick={() => onChange('')} className={chip(!value)} aria-pressed={!value}>
+        Tất cả
+      </button>
+      {brands.map((b) => (
+        <button type="button" key={b.id} onClick={() => onChange(b.id)} className={chip(value === b.id)} aria-pressed={value === b.id}>
+          <span className={clsx('size-2 rounded-full', BRAND_STYLE[b.color]?.bg)} />
+          {b.name}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export function BrandTag({ brand }: { brand?: Brand }) {
   if (!brand) return null
@@ -215,20 +235,64 @@ export function Modal({
         aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
         className={clsx(
-          'flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-surface shadow-2xl sm:rounded-2xl',
+          'flex max-h-[92dvh] w-full flex-col rounded-t-3xl bg-surface shadow-2xl sm:rounded-2xl',
           wide ? 'sm:max-w-3xl' : 'sm:max-w-lg',
+          !footer && 'pb-safe',
         )}
       >
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-ink-muted hover:bg-sunken" aria-label="Đóng">
+        {/* Tay nắm: gợi ý đây là bảng trượt từ dưới lên trên điện thoại */}
+        <span className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line-strong sm:hidden" aria-hidden />
+        <div className="flex items-center justify-between gap-3 border-b border-line py-2 pr-2 pl-5 sm:py-3">
+          <h2 className="min-w-0 truncate text-base font-semibold">{title}</h2>
+          <button onClick={onClose} className="flex size-11 shrink-0 items-center justify-center rounded-xl text-ink-muted hover:bg-sunken sm:size-9" aria-label="Đóng">
             <X className="size-5" />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
+        <div className="overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
+        {footer && (
+          <div className="pb-safe border-t border-line">
+            <div className="flex flex-wrap justify-end gap-2 px-5 py-3 max-sm:[&>button]:flex-1">{footer}</div>
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+// ---------- Bảng thao tác (menu "⋯") ----------
+export interface SheetAction {
+  label: string
+  icon?: ReactNode
+  onClick: () => void
+  danger?: boolean
+  hint?: string
+}
+
+/** Danh sách thao tác phụ: trượt từ dưới lên trên điện thoại, hộp thoại nhỏ trên máy tính */
+export function ActionSheet({ title, actions, onClose, children }: { title: string; actions: SheetAction[]; onClose: () => void; children?: ReactNode }) {
+  return (
+    <Modal open onClose={onClose} title={title}>
+      {children}
+      <div className="-mx-2 flex flex-col">
+        {actions.map((a) => (
+          <button
+            key={a.label}
+            type="button"
+            onClick={() => {
+              onClose()
+              a.onClick()
+            }}
+            className={clsx('flex min-h-12 items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-sunken', a.danger ? 'text-danger' : 'text-ink')}
+          >
+            <span className={clsx('shrink-0', a.danger ? 'text-danger' : 'text-ink-soft')}>{a.icon}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{a.label}</span>
+              {a.hint && <span className="block text-xs text-ink-muted">{a.hint}</span>}
+            </span>
+          </button>
+        ))}
+      </div>
+    </Modal>
   )
 }
 
@@ -296,7 +360,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4">
+      {/* Trên điện thoại nằm trên thanh điều hướng dưới */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-center gap-2 px-4 lg:bottom-4">
         {toasts.map((t) => (
           <div
             key={t.id}
@@ -348,23 +413,24 @@ export function StatCard({
     info: 'text-info bg-info-soft',
   }[tone]
   return (
-    <div className="card p-4">
+    <div className="card p-3 sm:p-4">
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-medium text-ink-soft">{label}</p>
-        {icon && <span className={clsx('rounded-lg p-1.5', toneCls)}>{icon}</span>}
+        {icon && <span className={clsx('hidden rounded-lg p-1.5 sm:block', toneCls)}>{icon}</span>}
       </div>
-      <p className="num mt-2 text-2xl font-semibold tracking-tight">{value}</p>
-      {hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
+      <p className="num mt-1 text-xl font-semibold tracking-tight sm:mt-2 sm:text-2xl">{value}</p>
+      {hint && <p className="mt-1 hidden text-xs text-ink-muted sm:block">{hint}</p>}
     </div>
   )
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
-        {subtitle && <div className="mt-1 text-sm text-ink-soft">{subtitle}</div>}
+        {/* Lời giải thích chỉ hiện trên màn hình lớn để điện thoại gọn */}
+        {subtitle && <div className="mt-1 hidden text-sm text-ink-soft sm:block">{subtitle}</div>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>

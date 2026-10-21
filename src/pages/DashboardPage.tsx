@@ -44,22 +44,22 @@ export function PeriodPicker({ f }: { f: ReturnType<typeof usePeriodFilter> }) {
   ]
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex rounded-xl bg-sunken p-1">
+      <div className="grid w-full grid-cols-4 rounded-xl bg-sunken p-1 sm:inline-flex sm:w-auto">
         {opts.map(([k, l]) => (
           <button
             key={k}
             onClick={() => f.setPreset(k)}
-            className={clsx('rounded-lg px-3 py-1.5 text-xs font-medium sm:text-sm', f.preset === k ? 'bg-surface shadow-sm' : 'text-ink-soft hover:text-ink')}
+            className={clsx('min-h-9 rounded-lg px-2 py-1.5 text-xs font-medium whitespace-nowrap sm:px-3 sm:text-sm', f.preset === k ? 'bg-surface shadow-sm' : 'text-ink-soft hover:text-ink')}
           >
             {l}
           </button>
         ))}
       </div>
       {f.preset === 'custom' && (
-        <div className="flex items-center gap-1.5">
-          <input type="date" className="input w-auto py-1.5" value={f.from} onChange={(e) => f.setFrom(e.target.value)} aria-label="Từ ngày" />
+        <div className="flex w-full items-center gap-1.5 sm:w-auto">
+          <input type="date" className="input min-w-0 flex-1 py-1.5 sm:w-auto sm:flex-none" value={f.from} onChange={(e) => f.setFrom(e.target.value)} aria-label="Từ ngày" />
           <span className="text-ink-muted">–</span>
-          <input type="date" className="input w-auto py-1.5" value={f.to} onChange={(e) => f.setTo(e.target.value)} aria-label="Đến ngày" />
+          <input type="date" className="input min-w-0 flex-1 py-1.5 sm:w-auto sm:flex-none" value={f.to} onChange={(e) => f.setTo(e.target.value)} aria-label="Đến ngày" />
         </div>
       )}
     </div>
@@ -112,7 +112,7 @@ export function DashboardPage() {
       )}
 
       {/* Bộ lọc */}
-      <div className="card mb-6 flex flex-col gap-3 p-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:mb-6 lg:flex-row lg:items-center lg:justify-between">
         <PeriodPicker f={period} />
         <div className="grid grid-cols-2 gap-2 lg:flex">
           <select className="input lg:w-44" value={brandId} onChange={(e) => setBrandId(e.target.value)} aria-label="Lọc thương hiệu">
@@ -137,7 +137,7 @@ export function DashboardPage() {
       </div>
 
       {/* Thẻ tổng hợp */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:grid-cols-6">
         <StatCard label="Việc đang mở" value={summary.active} hint="Hiện tại" icon={<ListTodo className="size-4" />} />
         <StatCard label="Hoàn thành" value={summary.completed} hint={period.label} tone="ok" icon={<CheckCircle2 className="size-4" />} />
         <StatCard label="Đang thực hiện" value={summary.inProgress} hint="Hiện tại" tone="info" icon={<PlayCircle className="size-4" />} />
@@ -152,8 +152,83 @@ export function DashboardPage() {
         />
       </div>
 
+      <div className="mt-6 grid gap-6 sm:mt-8 xl:grid-cols-5">
+        {/* Bảng chú ý */}
+        <div className="card flex flex-col xl:col-span-2">
+          <div className="flex gap-1 border-b border-line p-2">
+            {(
+              [
+                ['overdue', 'Quá hạn', overdueList.length],
+                ['blocked', 'Vướng mắc', blockedList.length],
+                ['approval', 'Chờ duyệt', approvalList.length],
+              ] as const
+            ).map(([k, l, n]) => (
+              <button
+                key={k}
+                onClick={() => setAttention(k)}
+                className={clsx('min-h-10 flex-1 rounded-lg px-2 py-1.5 text-sm whitespace-nowrap', attention === k ? 'bg-sunken font-medium' : 'text-ink-soft hover:bg-sunken')}
+              >
+                {l} <span className={clsx('num ml-1 rounded-full px-1.5 text-xs', n ? 'bg-danger-soft text-danger' : 'bg-sunken text-ink-muted')}>{n}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 divide-y divide-line lg:max-h-80 lg:overflow-y-auto">
+            {attentionList.length === 0 ? (
+              <EmptyState title="Không có việc cần chú ý" hint="Mọi thứ đang ổn trong mục này." />
+            ) : (
+              attentionList.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <span className={clsx('size-2 shrink-0 rounded-full', BRAND_STYLE[brandById.get(t.brand_id)?.color ?? 'terracotta'].bg)} />
+                  <Link to={`/cong-viec/${t.id}`} className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium hover:underline">{t.title}</p>
+                    <p className="truncate text-xs text-ink-muted">
+                      {taskPeople(t)
+                        .map((id) => profileById.get(id)?.full_name)
+                        .filter(Boolean)
+                        .join(', ') || 'Chưa giao'}
+                      {t.project_id && projectById.get(t.project_id) ? ` · ${projectById.get(t.project_id)!.name}` : ''}
+                    </p>
+                    {attention === 'blocked' && t.blocker_note && <p className="mt-0.5 line-clamp-2 text-xs text-danger">{t.blocker_note}</p>}
+                  </Link>
+                  {attention === 'approval' ? (
+                    <Button size="sm" variant="primary" onClick={() => setReviewing(t)}>
+                      Duyệt
+                    </Button>
+                  ) : (
+                    <DueText task={t} />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Biểu đồ */}
+        <div className="card p-4 xl:col-span-3">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold">Việc hoàn thành theo ngày</h2>
+            <span className="text-xs text-ink-muted">{period.label}{daily.length >= 31 ? ' (31 ngày đầu)' : ''}</span>
+          </div>
+          <div className="h-48 sm:h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={daily} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="#ece6de" />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8a8178' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#8a8178' }} tickLine={false} axisLine={false} />
+                <Tooltip
+                  cursor={{ fill: '#f3efe9' }}
+                  formatter={(v) => [`${v} việc`, 'Hoàn thành']}
+                  contentStyle={{ borderRadius: 12, border: '1px solid #e8e2da', fontSize: 12 }}
+                />
+                <Bar dataKey="count" fill="#2b2724" radius={[6, 6, 0, 0]} maxBarSize={36} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
       {/* Thương hiệu */}
-      <h2 className="mt-8 mb-3 text-sm font-semibold text-ink-soft">Tiến độ thương hiệu</h2>
+      <h2 className="mt-6 mb-3 text-sm font-semibold text-ink-soft sm:mt-8">Tiến độ thương hiệu</h2>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {brands.map((b) => {
           const bt = all.filter((t) => t.brand_id === b.id && (!personId || taskPeople(t).includes(personId)))
@@ -196,81 +271,6 @@ export function DashboardPage() {
             </Link>
           )
         })}
-      </div>
-
-      <div className="mt-8 grid gap-6 xl:grid-cols-5">
-        {/* Biểu đồ */}
-        <div className="card p-4 xl:col-span-3">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-sm font-semibold">Việc hoàn thành theo ngày</h2>
-            <span className="text-xs text-ink-muted">{period.label}{daily.length >= 31 ? ' (31 ngày đầu)' : ''}</span>
-          </div>
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={daily} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="#ece6de" />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8a8178' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#8a8178' }} tickLine={false} axisLine={false} />
-                <Tooltip
-                  cursor={{ fill: '#f3efe9' }}
-                  formatter={(v) => [`${v} việc`, 'Hoàn thành']}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e8e2da', fontSize: 12 }}
-                />
-                <Bar dataKey="count" fill="#2b2724" radius={[6, 6, 0, 0]} maxBarSize={36} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Bảng chú ý */}
-        <div className="card flex flex-col xl:col-span-2">
-          <div className="flex gap-1 border-b border-line p-2">
-            {(
-              [
-                ['overdue', 'Quá hạn', overdueList.length],
-                ['blocked', 'Vướng mắc', blockedList.length],
-                ['approval', 'Chờ duyệt', approvalList.length],
-              ] as const
-            ).map(([k, l, n]) => (
-              <button
-                key={k}
-                onClick={() => setAttention(k)}
-                className={clsx('flex-1 rounded-lg px-2 py-1.5 text-sm', attention === k ? 'bg-sunken font-medium' : 'text-ink-soft hover:bg-sunken')}
-              >
-                {l} <span className={clsx('num ml-1 rounded-full px-1.5 text-xs', n ? 'bg-danger-soft text-danger' : 'bg-sunken text-ink-muted')}>{n}</span>
-              </button>
-            ))}
-          </div>
-          <div className="max-h-80 flex-1 divide-y divide-line overflow-y-auto">
-            {attentionList.length === 0 ? (
-              <EmptyState title="Không có việc cần chú ý" hint="Mọi thứ đang ổn trong mục này." />
-            ) : (
-              attentionList.map((t) => (
-                <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <span className={clsx('size-2 shrink-0 rounded-full', BRAND_STYLE[brandById.get(t.brand_id)?.color ?? 'terracotta'].bg)} />
-                  <Link to={`/cong-viec/${t.id}`} className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium hover:underline">{t.title}</p>
-                    <p className="truncate text-xs text-ink-muted">
-                      {taskPeople(t)
-                        .map((id) => profileById.get(id)?.full_name)
-                        .filter(Boolean)
-                        .join(', ') || 'Chưa giao'}
-                      {t.project_id && projectById.get(t.project_id) ? ` · ${projectById.get(t.project_id)!.name}` : ''}
-                    </p>
-                    {attention === 'blocked' && t.blocker_note && <p className="mt-0.5 line-clamp-2 text-xs text-danger">{t.blocker_note}</p>}
-                  </Link>
-                  {attention === 'approval' ? (
-                    <Button size="sm" variant="primary" onClick={() => setReviewing(t)}>
-                      Duyệt
-                    </Button>
-                  ) : (
-                    <DueText task={t} />
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Nhân viên */}

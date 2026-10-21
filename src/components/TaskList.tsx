@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { AlertOctagon, Search } from 'lucide-react'
+import { AlertOctagon, Search, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useLookups } from '../hooks/queries'
@@ -48,7 +48,10 @@ export function TaskRow({ task, showProject = true, extra }: { task: Task; showP
         <div className="hidden w-20 md:block">
           <ProgressBar value={effectiveProgress(task)} color={task.status === 'hoan_thanh' ? 'bg-ok' : undefined} />
         </div>
-        <PriorityBadge priority={task.priority} />
+        {/* Điện thoại chỉ hiện ưu tiên khi cao / khẩn cấp */}
+        <span className={clsx(task.priority !== 'cao' && task.priority !== 'khan_cap' && 'max-sm:hidden')}>
+          <PriorityBadge priority={task.priority} />
+        </span>
         <StatusBadge status={task.status} />
         <DueText task={task} className="w-20 text-right" />
         {extra}
@@ -78,6 +81,8 @@ export function TaskTable({
   const [person, setPerson] = useState('')
   const [priority, setPriority] = useState<TaskPriority | ''>('')
   const [sort, setSort] = useState<SortKey>('due')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const activeFilters = Number(status !== 'open') + Number(!!person) + Number(!!priority) + Number(sort !== 'due')
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -99,11 +104,24 @@ export function TaskTable({
   return (
     <div className="card overflow-hidden">
       <div className="flex flex-col gap-2 border-b border-line p-3 lg:flex-row lg:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
-          <input className="input pl-9" placeholder="Tìm công việc…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex gap-2 lg:flex-1">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
+            <input className="input pl-9" type="search" placeholder="Tìm công việc…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          {/* Điện thoại: ẩn bớt bộ lọc sau một nút */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((v) => !v)}
+            className={clsx('relative flex size-11 shrink-0 items-center justify-center rounded-xl border sm:hidden', filtersOpen ? 'border-ink bg-sunken' : 'border-line-strong')}
+            aria-label="Bộ lọc"
+            aria-expanded={filtersOpen}
+          >
+            <SlidersHorizontal className="size-4" />
+            {activeFilters > 0 && <span className="num absolute -top-1 -right-1 min-w-4 rounded-full bg-ink px-1 text-[10px] leading-4 text-white">{activeFilters}</span>}
+          </button>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex">
+        <div className={clsx('grid-cols-2 gap-2 sm:grid sm:grid-cols-4 lg:flex', filtersOpen ? 'grid' : 'hidden')}>
           <select className="input lg:w-40" value={status} onChange={(e) => setStatus(e.target.value as TaskStatus | 'open' | '')} aria-label="Lọc trạng thái">
             <option value="open">Đang mở</option>
             <option value="">Tất cả trạng thái</option>

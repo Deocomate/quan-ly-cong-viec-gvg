@@ -7,7 +7,7 @@ import { ProjectFormModal } from '../components/ProjectFormModal'
 import { TaskFormModal } from '../components/TaskFormModal'
 import { TaskTable } from '../components/TaskList'
 import { TaskViews, ViewTabs, type ViewKey } from '../components/TaskViews'
-import { Avatar, Badge, BrandTag, Button, DemoTag, EmptyState, ErrorBox, Loading, PageHeader, ProgressBar, useConfirm, useToast } from '../components/ui'
+import { Avatar, Badge, BrandChips, BrandTag, Button, DemoTag, EmptyState, ErrorBox, Loading, PageHeader, ProgressBar, useConfirm, useToast } from '../components/ui'
 import { useAuth } from '../contexts/AuthContext'
 import { qk, useLookups, useTasks } from '../hooks/queries'
 import { BRAND_STYLE, PROJECT_STATUS_LABEL } from '../lib/constants'
@@ -76,21 +76,9 @@ export function ProjectsPage() {
           )
         }
       />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <button onClick={() => setBrandId('')} className={clsx('rounded-full px-3 py-1.5 text-sm', !brandId ? 'bg-ink text-white' : 'bg-sunken text-ink-soft hover:bg-line')}>
-          Tất cả
-        </button>
-        {brands.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => setBrandId(b.id)}
-            className={clsx('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm', brandId === b.id ? 'bg-ink text-white' : 'bg-sunken text-ink-soft hover:bg-line')}
-          >
-            <span className={clsx('size-2 rounded-full', BRAND_STYLE[b.color].bg)} />
-            {b.name}
-          </button>
-        ))}
-        <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <BrandChips brands={brands} value={brandId} onChange={setBrandId} />
+        <label className="flex min-h-9 items-center gap-2 text-sm text-ink-soft sm:ml-auto">
           <input type="checkbox" className="accent-[#2b2724]" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} />
           Hiện dự án đã đóng
         </label>

@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBrandMembers, useInvalidateTask, useLookups } from '../hooks/queries'
@@ -25,7 +25,7 @@ export function TaskFormModal({ open, onClose, task, defaultBrandId, defaultProj
   const navigate = useNavigate()
   const editing = Boolean(task)
 
-  const [brandId, setBrandId] = useState(task?.brand_id ?? defaultBrandId ?? '')
+  const [brandId, setBrandId] = useState(task?.brand_id ?? defaultBrandId ?? (brands.length === 1 ? brands[0].id : ''))
   const [projectId, setProjectId] = useState(task?.project_id ?? defaultProjectId ?? '')
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
@@ -41,6 +41,8 @@ export function TaskFormModal({ open, onClose, task, defaultBrandId, defaultProj
   const [checklist, setChecklist] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Trường ít dùng được thu gọn để form tạo việc ngắn, nhất là trên điện thoại
+  const [showMore, setShowMore] = useState(editing)
 
   const brandProjects = projects.filter((p) => p.brand_id === brandId && p.status !== 'da_huy')
   const staff = profiles.filter((p) => p.is_active)
@@ -120,7 +122,9 @@ export function TaskFormModal({ open, onClose, task, defaultBrandId, defaultProj
       footer={
         <>
           {error && <p className="mr-auto self-center text-sm text-danger">{error}</p>}
-          <Button onClick={onClose}>Hủy</Button>
+          <Button onClick={onClose} className="max-sm:hidden">
+            Hủy
+          </Button>
           {!editing && (
             <Button onClick={() => save(true)} loading={saving}>
               Tạo và mở
@@ -178,7 +182,7 @@ export function TaskFormModal({ open, onClose, task, defaultBrandId, defaultProj
                   key={p.id}
                   onClick={() => toggleAssignee(p.id)}
                   className={clsx(
-                    'flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition-colors',
+                    'flex min-h-11 items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition-colors sm:min-h-0',
                     on ? 'border-ink bg-ink text-white' : 'border-line-strong hover:bg-sunken',
                   )}
                 >
@@ -190,16 +194,18 @@ export function TaskFormModal({ open, onClose, task, defaultBrandId, defaultProj
             })}
           </div>
         </div>
-        <Field label="Người phụ trách chính">
-          <select className="input" value={primary} onChange={(e) => setPrimary(e.target.value)} disabled={!assignees.length}>
-            <option value="">— Chưa chọn —</option>
-            {assignees.map((id) => (
-              <option key={id} value={id}>
-                {profiles.find((p) => p.id === id)?.full_name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {assignees.length > 1 && (
+          <Field label="Người phụ trách chính" className="sm:col-span-2">
+            <select className="input" value={primary} onChange={(e) => setPrimary(e.target.value)} disabled={!assignees.length}>
+              <option value="">— Chưa chọn —</option>
+              {assignees.map((id) => (
+                <option key={id} value={id}>
+                  {profiles.find((p) => p.id === id)?.full_name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <div>
           <span className="label">Độ ưu tiên</span>
           <div className="grid grid-cols-4 gap-1">
@@ -209,7 +215,7 @@ export function TaskFormModal({ open, onClose, task, defaultBrandId, defaultProj
                 key={p}
                 onClick={() => setPriority(p)}
                 className={clsx(
-                  'rounded-lg px-1 py-2 text-xs font-medium transition',
+                  'min-h-11 rounded-lg px-1 py-2 text-xs font-medium transition sm:min-h-0',
                   priority === p ? clsx(PRIORITY_STYLE[p], 'ring-2 ring-current') : 'bg-sunken text-ink-soft hover:bg-line',
                 )}
               >
@@ -218,63 +224,78 @@ export function TaskFormModal({ open, onClose, task, defaultBrandId, defaultProj
             ))}
           </div>
         </div>
-        <Field label="Ngày bắt đầu">
-          <input type="date" className="input" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </Field>
         <Field label="Hạn chót" hint="Tính đến 23:59 ngày đã chọn (giờ Việt Nam)">
           <input type="date" className="input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </Field>
-        <Field label="Độ phức tạp (trọng số)">
-          <select className="input" value={weight} onChange={(e) => setWeight(Number(e.target.value))}>
-            {WEIGHT_OPTIONS.map((w) => (
-              <option key={w.value} value={w.value}>
-                {w.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Giờ làm ước tính">
-          <input className="input" inputMode="decimal" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="VD: 4" />
-        </Field>
-        <label className="flex items-start gap-2 text-sm sm:col-span-2">
-          <input type="checkbox" className="mt-0.5 size-4 accent-[#2b2724]" checked={requiresApproval} onChange={(e) => setRequiresApproval(e.target.checked)} />
-          <span>
-            Cần quản lý duyệt trước khi tính là hoàn thành
-            <span className="block text-xs text-ink-muted">Bỏ chọn nếu việc đơn giản, nhân viên nộp là hoàn thành ngay.</span>
-          </span>
-        </label>
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink sm:col-span-2"
+          aria-expanded={showMore}
+        >
+          <ChevronDown className={clsx('size-4 transition', !showMore && '-rotate-90')} />
+          Thêm chi tiết
+          <span className="hidden font-normal text-ink-muted sm:inline">· ngày bắt đầu, độ phức tạp, giờ ước tính, duyệt, liên kết{editing ? '' : ', checklist'}</span>
+        </button>
 
-        <div className="sm:col-span-2">
-          <span className="label">Liên kết liên quan</span>
-          <div className="space-y-2">
-            {links.map((l, i) => (
-              <div key={i} className="flex gap-2">
-                <input className="input w-1/3" placeholder="Tên" value={l.label} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
-                <input className="input" placeholder="https://…" value={l.url} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
-                <Button variant="ghost" onClick={() => setLinks(links.filter((_, j) => j !== i))} aria-label="Xóa liên kết" icon={<Trash2 className="size-4" />} />
+        {showMore && (
+          <>
+            <Field label="Ngày bắt đầu">
+              <input type="date" className="input" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </Field>
+            <Field label="Độ phức tạp (trọng số)">
+              <select className="input" value={weight} onChange={(e) => setWeight(Number(e.target.value))}>
+                {WEIGHT_OPTIONS.map((w) => (
+                  <option key={w.value} value={w.value}>
+                    {w.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Giờ làm ước tính">
+              <input className="input" inputMode="decimal" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="VD: 4" />
+            </Field>
+            <label className="flex items-start gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" className="mt-0.5 size-4 accent-[#2b2724]" checked={requiresApproval} onChange={(e) => setRequiresApproval(e.target.checked)} />
+              <span>
+                Cần quản lý duyệt trước khi tính là hoàn thành
+                <span className="block text-xs text-ink-muted">Bỏ chọn nếu việc đơn giản, nhân viên nộp là hoàn thành ngay.</span>
+              </span>
+            </label>
+
+            <div className="sm:col-span-2">
+              <span className="label">Liên kết liên quan</span>
+              <div className="space-y-2">
+                {links.map((l, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input className="input w-1/3" placeholder="Tên" value={l.label} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
+                    <input className="input" placeholder="https://…" value={l.url} onChange={(e) => setLinks(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
+                    <Button variant="ghost" onClick={() => setLinks(links.filter((_, j) => j !== i))} aria-label="Xóa liên kết" icon={<Trash2 className="size-4" />} />
+                  </div>
+                ))}
+                <Button size="sm" variant="ghost" icon={<Plus className="size-3.5" />} onClick={() => setLinks([...links, { label: '', url: '' }])}>
+                  Thêm liên kết
+                </Button>
               </div>
-            ))}
-            <Button size="sm" variant="ghost" icon={<Plus className="size-3.5" />} onClick={() => setLinks([...links, { label: '', url: '' }])}>
-              Thêm liên kết
-            </Button>
-          </div>
-        </div>
-
-        {!editing && (
-          <div className="sm:col-span-2">
-            <span className="label">Danh sách việc cần làm (checklist)</span>
-            <div className="space-y-2">
-              {checklist.map((c, i) => (
-                <div key={i} className="flex gap-2">
-                  <input className="input" value={c} placeholder={`Bước ${i + 1}`} onChange={(e) => setChecklist(checklist.map((x, j) => (j === i ? e.target.value : x)))} />
-                  <Button variant="ghost" onClick={() => setChecklist(checklist.filter((_, j) => j !== i))} aria-label="Xóa bước" icon={<Trash2 className="size-4" />} />
-                </div>
-              ))}
-              <Button size="sm" variant="ghost" icon={<Plus className="size-3.5" />} onClick={() => setChecklist([...checklist, ''])}>
-                Thêm bước
-              </Button>
             </div>
-          </div>
+
+            {!editing && (
+              <div className="sm:col-span-2">
+                <span className="label">Danh sách việc cần làm (checklist)</span>
+                <div className="space-y-2">
+                  {checklist.map((c, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input className="input" value={c} placeholder={`Bước ${i + 1}`} onChange={(e) => setChecklist(checklist.map((x, j) => (j === i ? e.target.value : x)))} />
+                      <Button variant="ghost" onClick={() => setChecklist(checklist.filter((_, j) => j !== i))} aria-label="Xóa bước" icon={<Trash2 className="size-4" />} />
+                    </div>
+                  ))}
+                  <Button size="sm" variant="ghost" icon={<Plus className="size-3.5" />} onClick={() => setChecklist([...checklist, ''])}>
+                    Thêm bước
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </Modal>

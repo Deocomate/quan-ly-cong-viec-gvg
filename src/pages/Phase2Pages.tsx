@@ -68,8 +68,8 @@ export function WorkCalendarPage() {
   return (
     <>
       <PageHeader title="Lịch công việc" subtitle="Xem toàn bộ công việc theo lịch hạn chót, bảng Kanban hoặc timeline." actions={<ViewTabs view={view} onChange={setView} views={['calendar', 'kanban', 'timeline', 'list']} />} />
-      <div className="card mb-4 flex flex-wrap items-center gap-2 p-3">
-        <select className="input w-auto" value={brandId} onChange={(e) => setBrandId(e.target.value)} aria-label="Lọc thương hiệu">
+      <div className="mb-4 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap sm:rounded-2xl sm:border sm:border-line sm:bg-surface sm:p-3">
+        <select className="input sm:w-auto" value={brandId} onChange={(e) => setBrandId(e.target.value)} aria-label="Lọc thương hiệu">
           <option value="">Tất cả thương hiệu</option>
           {brands.map((b) => (
             <option key={b.id} value={b.id}>
@@ -77,7 +77,7 @@ export function WorkCalendarPage() {
             </option>
           ))}
         </select>
-        <select className="input w-auto" value={personId} onChange={(e) => setPersonId(e.target.value)} aria-label="Lọc người thực hiện">
+        <select className="input sm:w-auto" value={personId} onChange={(e) => setPersonId(e.target.value)} aria-label="Lọc người thực hiện">
           <option value="">Mọi người</option>
           <option value={me.id}>Chỉ việc của tôi</option>
           {profiles
@@ -88,11 +88,11 @@ export function WorkCalendarPage() {
               </option>
             ))}
         </select>
-        <label className="flex items-center gap-2 text-sm text-ink-soft">
-          <input type="checkbox" className="accent-[#2b2724]" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} />
+        <label className="col-span-2 flex min-h-9 items-center gap-2 text-sm text-ink-soft">
+          <input type="checkbox" className="size-4 accent-[#2b2724]" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} />
           Ẩn việc đã xong
         </label>
-        <span className="ml-auto flex flex-wrap gap-3 text-xs text-ink-soft">
+        <span className="ml-auto hidden flex-wrap gap-3 text-xs text-ink-soft sm:flex">
           {brands.map((b) => (
             <span key={b.id} className="flex items-center gap-1">
               <span className={clsx('size-2 rounded-full', BRAND_STYLE[b.color].bg)} /> {b.name}

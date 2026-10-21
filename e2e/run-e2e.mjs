@@ -73,6 +73,7 @@ try {
   await dlg.getByRole('button', { name: 'Cao', exact: true }).click()
   const due = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
   await dlg.getByLabel('Hạn chót').fill(due)
+  await dlg.getByRole('button', { name: /Thêm chi tiết/ }).click()
   await dlg.getByLabel('Giờ làm ước tính').fill('6')
   await dlg.getByRole('button', { name: 'Thêm bước' }).click()
   await dlg.getByPlaceholder('Bước 1').fill('Viết kịch bản')
@@ -91,6 +92,17 @@ try {
   await shot(emp, '06-cong-viec-cua-toi-mobile')
   log('Nhân viên vào thẳng "Công việc của tôi" (di động)')
 
+  // Điện thoại: thanh điều hướng dưới, menu Thêm, cập nhật nhanh qua nút ⋯
+  await emp.getByRole('navigation', { name: 'Điều hướng chính' }).waitFor()
+  await emp.getByRole('button', { name: 'Thêm', exact: true }).click()
+  await emp.getByRole('dialog').getByRole('link', { name: 'Lịch nội dung' }).waitFor()
+  await shot(emp, '06b-menu-them-mobile', false)
+  await emp.getByRole('dialog').getByRole('button', { name: 'Đóng' }).click()
+  await emp.getByRole('button', { name: 'Cập nhật nhanh' }).first().click()
+  await emp.getByRole('dialog').getByRole('button', { name: '40%', exact: true }).click()
+  await toastSeen(emp, 'Đã cập nhật')
+  log('Điện thoại: thanh điều hướng dưới, menu Thêm, cập nhật tiến độ nhanh')
+
   // Nhân viên không vào được trang tổng quan quản trị
   await emp.goto(`${BASE}/`)
   await emp.getByRole('heading', { name: 'Công việc của tôi' }).waitFor()
@@ -98,6 +110,7 @@ try {
 
   await emp.goto(taskUrl)
   await emp.getByRole('heading', { name: 'Quay 3 video TikTok bình hút lộc' }).waitFor()
+  await shot(emp, '06c-chi-tiet-cong-viec-mobile', false)
   await emp.getByRole('checkbox').first().click()
   await emp.waitForFunction(() => document.querySelector('input[type=checkbox]')?.checked === true, null, { timeout: 5000 })
   await emp.getByLabel('Tiến độ').fill('60')
@@ -208,6 +221,8 @@ try {
   // ===== Giai đoạn 2 =====
   async function drag(page, from, to) {
     await from.scrollIntoViewIfNeeded()
+    // Đưa cột đích vào khung nhìn (cuộn ít nhất) như người dùng thật; thả ra ngoài màn hình phụ thuộc tốc độ tự cuộn của bảng
+    await to.evaluate((el) => el.scrollIntoView({ block: 'nearest', inline: 'nearest' }))
     const a = await from.boundingBox()
     const b = await to.boundingBox()
     const [x0, y0] = [a.x + a.width / 2, a.y + a.height / 2]

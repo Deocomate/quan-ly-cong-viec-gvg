@@ -14,7 +14,11 @@ Thương hiệu (4)  ──<  Dự án / chiến dịch  ──<  Công việc  
 
 Một nhân viên có thể thuộc nhiều thương hiệu. Một công việc luôn thuộc một thương hiệu, có thể thuộc hoặc không thuộc dự án.
 
-## Điều hướng (thanh bên trái)
+## Điều hướng
+
+**Máy tính:** thanh bên trái chia 3 nhóm — việc hằng ngày (Tổng quan, Công việc của tôi, Lịch công việc, Dự án, Thông báo), **Quản lý** (Lịch nội dung, Mục tiêu & KPI, Nhân viên, Báo cáo, Việc lặp lại) và **Thương hiệu**; Cài đặt và Đăng xuất ở chân thanh bên.
+
+**Điện thoại / máy tính bảng (< 1024px):** thanh điều hướng dưới. Quản trị viên: Tổng quan · Việc của tôi · nút **+** tạo việc · Thông báo · Thêm. Nhân viên: Việc của tôi · Lịch · Thông báo · Thêm. "Thêm" mở bảng trượt chứa các trang còn lại, 4 thương hiệu, Cài đặt và Đăng xuất. Trang chi tiết công việc ẩn thanh dưới, thay bằng thanh hành động chính.
 
 | Mục | Ai thấy | Nội dung | Trạng thái |
 |---|---|---|---|

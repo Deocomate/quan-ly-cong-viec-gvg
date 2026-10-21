@@ -40,10 +40,21 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-canvas text-ink font-sans antialiased;
     font-feature-settings: 'tnum' 0;
+    overscroll-behavior-y: none;
+  }
+  /* Bỏ trễ 300ms khi chạm; giữ cuộn và thu phóng bằng hai ngón */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label {
+    touch-action: manipulation;
   }
   ::selection {
     background: #ead9c9;
@@ -54,15 +65,28 @@
   .card {
     @apply bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(43,39,36,0.04)];
   }
+  /* 16px trên điện thoại để iOS không tự phóng to khi chạm vào ô nhập; cao ≥ 44px cho dễ chạm */
   .input {
-    @apply w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted
-      focus:border-ink-soft focus:outline-none focus:ring-2 focus:ring-[#ead9c9] disabled:bg-sunken disabled:text-ink-muted;
+    @apply min-h-11 w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted
+      focus:border-ink-soft focus:outline-none focus:ring-2 focus:ring-[#ead9c9] disabled:bg-sunken disabled:text-ink-muted
+      sm:min-h-0 sm:text-sm;
   }
   .label {
     @apply mb-1 block text-xs font-medium text-ink-soft;
   }
   .num {
     font-variant-numeric: tabular-nums;
+  }
+  /* Dải nút cuộn ngang trên điện thoại, không hiện thanh cuộn */
+  .scroll-x {
+    @apply -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0;
+    scrollbar-width: none;
+  }
+  .scroll-x::-webkit-scrollbar {
+    display: none;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
